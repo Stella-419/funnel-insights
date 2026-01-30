@@ -45,7 +45,7 @@ pip install -r requirements.txt
 streamlit run app/Analyzer.py
 
 启动后在浏览器中访问：
-http://localhost:8501
+[http://localhost:8501](https://funnel-insights-e3grejmnubghatgg43yenf.streamlit.app/)
 ```
 
 ## 📁 Project Structure
