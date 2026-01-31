@@ -385,6 +385,57 @@ if report:
 else:
     st.info("点击上面的「生成/刷新日报」来生成洞察日报。")
 
+# =========================================================
+# Chat follow-up
+# =========================================================
+st.subheader("💬 进一步追问（Chatbot）")
+with st.expander("打开追问区", expanded=False):
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+
+    for msg in st.session_state.chat_history:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    q = st.chat_input("例如：哪个分组最值得优先排查？我应该怎么拆？")
+    if q:
+        st.session_state.chat_history.append({"role": "user", "content": q})
+        with st.chat_message("user"):
+            st.markdown(q)
+
+        context = f"""
+【漏斗定义】
+Steps={st.session_state['steps']}, strict={strict_mode}, window_days={window_days}
+
+【总体结果】
+{res_all.to_dict(orient="records")}
+最大下降步骤：{worst_readable_all}（{worst_pp_all:.2f}pp，{risk_level}）
+行动提示：{hint}
+
+【分组结果（如有）】
+Breakdown字段：{breakdown_col or "无"}
+{breakdown_summary_text or "无分组或无有效分组对比"}
+
+【用户追问】
+{q}
+
+请回答：
+- 先给结论（1-2句）
+- 再给 2-3 个可能原因（必须标注“假设”）
+- 给 5 条下一步可执行的拆解/排查建议（能落地）
+- 若需要额外字段或 SQL 才能确认，请明确写出“需要哪些字段 + 怎么查”
+"""
+        try:
+            with st.chat_message("assistant"):
+                with st.spinner("生成回答中…"):
+                    ans = deepseek_chat([{"role": "user", "content": context}], model=CHAT_MODEL, temperature=0.3)
+                st.markdown(ans)
+            st.session_state.chat_history.append({"role": "assistant", "content": ans})
+        except Exception as e:
+            st.error("追问失败（可能是网络/限流/Key/超时）。")
+            st.code(str(e))
+    
+
 # Export
 st.subheader("📥 导出日报")
 md = build_export_markdown(
